@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"login-sys/auth/models"
 	"login-sys/config"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func Register(username string, password string) error {
@@ -113,11 +115,10 @@ func WhoAmI() (string, error) {
 	var session models.Session
 	err = db.DB.Preload("User").Where("session_id=?", config.SessionID).First(&session).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", fmt.Errorf("no login session found")
+		}
 		return "", err
-	}
-
-	if session.ID == 0 {
-		return "", fmt.Errorf("not logged in")
 	}
 
 	// check for is session got expired
@@ -146,7 +147,7 @@ func LogOut() error {
 	}
 
 	if sessionId == "" {
-		return fmt.Errorf("not loged in")
+		return fmt.Errorf("no login session found")
 	}
 
 	// if we could find the session delete the session from the server
