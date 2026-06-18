@@ -3,19 +3,20 @@ package db
 import (
 	"login-sys/auth/models"
 
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
 
 func Connect() (*gorm.DB, error) {
 
-	dsn := "postgresql://postgres:root@localhost:5432/login_system"
-
 	return gorm.Open(
-		postgres.Open(dsn),
-		&gorm.Config{},
+		sqlite.Open("auth.db"),
+		&gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
+		},
 	)
 }
 
