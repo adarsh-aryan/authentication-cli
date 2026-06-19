@@ -107,13 +107,13 @@ Once the CLI is running, you can use the following commands:
 ### Register
 
 ```bash
-register
+register --username=YOUR_USERNAME --password=YOUR_PASSWORD
 ```
 
 ### Login
 
 ```bash
-login
+login --username=YOUR_USERNAME --password=YOUR_PASSWORD
 ```
 
 ### Logout
@@ -139,6 +139,15 @@ quit
 - The server uses SQLite for persistence (`auth-server/data/auth.db`)
 - Shared data structures are defined in `shared/types.go`
 - CLI commands are implemented using a command-based structure under `auth-client/cmd/`
+
+## Session Management
+
+After a successful login, the CLI stores the session locally inside the client container at `data/config.json`.
+
+- This file tracks the active session for the CLI
+- It is used by `whoami` to identify the current user
+- It is also used by `logout` to determine which session should be invalidated on the server
+- Docker volumes are used to persist both the client session file and the server database (`auth.db`), ensuring data is retained across container restarts
 
 ## Troubleshooting
 
