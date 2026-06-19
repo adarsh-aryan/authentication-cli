@@ -52,25 +52,19 @@ Update values if needed.
 
 This project uses Docker Compose but requires running the server and CLI separately.
 
-### 1. Build images
+### 1. Build the images and start the auth server
 
 ```bash
-docker compose build
-```
-
-### 2. Start the auth server
-
-```bash
-docker compose up auth-server -d
+docker compose up auth-server -d --remove-orphans --build
 ```
 
 - Runs the server in the background
 - Uses SQLite for persistence inside the container
 
-### 3. Run the CLI (interactive)
+### 2. Run the CLI (interactive)
 
 ```bash
-docker compose run --rm auth-client up
+docker compose run --rm auth-client up --remove-orphans
 ```
 
 - Starts an interactive CLI session

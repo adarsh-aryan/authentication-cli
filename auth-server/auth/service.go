@@ -81,12 +81,12 @@ func (s *AuthService) Login(args shared.LoginArgs, reply *shared.LoginResponse) 
 	}
 
 	if user.ID == 0 {
-		return fmt.Errorf("Username %v is not registered", username)
+		return fmt.Errorf("%v is not registered", username)
 	}
 
 	// check for if account has been locked for this user
 	if user.Account != nil && user.Account.IsLock {
-		return fmt.Errorf("User %v account has been locked!", username)
+		return fmt.Errorf("%v account has been locked!", username)
 	}
 
 	// verify password
@@ -117,7 +117,14 @@ func (s *AuthService) Login(args shared.LoginArgs, reply *shared.LoginResponse) 
 			return err
 		}
 
-		return fmt.Errorf("wrong password!")
+		return fmt.Errorf("wrong password!, you have %v attempts left", user.Account.MaxLoginAttempts-login_attempts)
+	}
+
+	// if successful login login attempts reset to zero
+	user.Account.CurrentLoginAttempts = 0
+	err = s.DB.Save(user.Account).Error
+	if err != nil {
+		return err
 	}
 
 	// save user session with timeout(configurable) (default 2minutes)

@@ -4,6 +4,7 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"login-sys/auth-client/client"
 	"login-sys/auth-client/config"
@@ -42,7 +43,18 @@ var loginCmd = &cobra.Command{
 		}
 
 		// show user details to user after login
-		fmt.Printf("{'username':%s,'registration_date':%s,'session_expiry':%s,'last_login':%s}", reply.UserDetails.Username, reply.UserDetails.RegistrationDate, reply.UserDetails.SessionExpirationTime, reply.UserDetails.LastLoginTime)
+		data := map[string]string{
+			"username":          reply.UserDetails.Username,
+			"registration_date": reply.UserDetails.RegistrationDate,
+			"session_expiry":    reply.UserDetails.SessionExpirationTime,
+			"last_login":        reply.UserDetails.LastLoginTime,
+		}
+
+		// 2. Marshal to valid JSON bytes
+		jsonBytes, _ := json.Marshal(data)
+
+		// 3. Print it perfectly with a newline
+		fmt.Println(string(jsonBytes))
 
 		// send message to cli
 		fmt.Println(reply.GetMessage())

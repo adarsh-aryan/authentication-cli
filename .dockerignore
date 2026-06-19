@@ -27,3 +27,6 @@ Thumbs.db
 
 # SQLITE
 data/
+
+# MARKDOWN FILES
+*.md
