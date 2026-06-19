@@ -47,6 +47,7 @@ func AutoMigrateTables() *gorm.DB {
 	db.AutoMigrate(
 		&models.User{},
 		&models.Session{},
+		&models.Account{},
 	)
 
 	return db

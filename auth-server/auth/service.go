@@ -50,10 +50,11 @@ func (s *AuthService) Register(args shared.RegisterArgs, reply *shared.AuthRespo
 	if err != nil {
 		return err
 	}
-	// create user
+	// create user with thier account
 	user := models.User{
 		Username: username,
 		Password: hashed_password,
+		Account:  &models.Account{},
 	}
 	err = s.DB.Create(&user).Error
 	if err != nil {
@@ -73,7 +74,7 @@ func (s *AuthService) Login(args shared.LoginArgs, reply *shared.LoginResponse) 
 
 	// check for this username registration
 	var user models.User
-	err := s.DB.Where("username=?", username).First(&user).Error
+	err := s.DB.Preload("Account").Where("username=?", username).First(&user).Error
 
 	if err != nil {
 		return err
@@ -83,13 +84,40 @@ func (s *AuthService) Login(args shared.LoginArgs, reply *shared.LoginResponse) 
 		return fmt.Errorf("Username %v is not registered", username)
 	}
 
+	// check for if account has been locked for this user
+	if user.Account != nil && user.Account.IsLock {
+		return fmt.Errorf("User %v account has been locked!", username)
+	}
+
 	// verify password
 	// hashed current password
 	// compare current hashed password to user hashed password in the database
 
 	err = models.CheckPassword(password, user.Password)
 	if err != nil {
-		return fmt.Errorf("password verification failed %v", password)
+		// if password has not been mached
+		// we have to count it as failed attempt
+		// update the account info for this user
+		login_attempts := user.Account.CurrentLoginAttempts
+		login_attempts += 1
+
+		user.Account.CurrentLoginAttempts = login_attempts
+
+		if login_attempts >= user.Account.MaxLoginAttempts {
+			user.Account.IsLock = true // lock the account
+			err := s.DB.Save(user.Account).Error
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("max login attempts reached!, %v account has been locked", username)
+		}
+
+		err := s.DB.Save(user.Account).Error
+		if err != nil {
+			return err
+		}
+
+		return fmt.Errorf("wrong password!")
 	}
 
 	// save user session with timeout(configurable) (default 2minutes)
