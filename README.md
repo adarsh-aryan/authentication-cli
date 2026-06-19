@@ -12,6 +12,7 @@ A simple authentication system consisting of:
 - Session handling
 - `whoami` command to check current user
 - SQLite database (local)
+- Account lock after maximum failed login attempts
 
 ## Project Structure
 
@@ -148,6 +149,14 @@ After a successful login, the CLI stores the session locally inside the client c
 - It is used by `whoami` to identify the current user
 - It is also used by `logout` to determine which session should be invalidated on the server
 - Docker volumes are used to persist both the client session file and the server database (`auth.db`), ensuring data is retained across container restarts
+
+## Account Locking
+
+To improve security, accounts are automatically locked after exceeding the maximum number of failed login attempts.
+
+- Once locked, the user will not be able to log in
+- This prevents brute-force login attempts
+- (If applicable) unlocking requires administrative action or resetting state (e.g., clearing the database during development)
 
 ## Troubleshooting
 
