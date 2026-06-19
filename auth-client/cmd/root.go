@@ -5,14 +5,13 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:  "login-sys",
+	Use:  "auth-cli",
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("args", args)
@@ -20,12 +19,13 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func SetInputArgs(args []string) {
+	rootCmd.SetArgs(args)
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute() error {
 	err := rootCmd.Execute()
-	if err != nil {
-		fmt.Println("error", err.Error())
-		os.Exit(1)
-	}
+	return err
 }

@@ -5,14 +5,17 @@ package cmd
 
 import (
 	"fmt"
-	"login-sys/auth"
+	"login-sys/auth-client/client"
+	"login-sys/auth-client/config"
+	"login-sys/shared"
 
 	"github.com/spf13/cobra"
 )
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
-	Use: "login",
+	Use:   "login [username] [password]",
+	Short: "Log into your account",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// get username and password from cmd flags
@@ -25,12 +28,25 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
-		//login user
-		err = auth.Login(username, password)
+		var reply shared.LoginResponse
+		err = client.Client.Call("AuthService.Login", &shared.LoginArgs{Username: username, Password: password}, &reply)
+
 		if err != nil {
 			return err
 		}
-		fmt.Println("login called")
+
+		// save the current session in config file
+		err = config.Save(reply.SessionId, reply.UserDetails.SessionExpirationTime)
+		if err != nil {
+			return err
+		}
+
+		// show user details to user after login
+		fmt.Printf("{'username':%s,'registration_date':%s,'session_expiry':%s,'last_login':%s}", reply.UserDetails.Username, reply.UserDetails.RegistrationDate, reply.UserDetails.SessionExpirationTime, reply.UserDetails.LastLoginTime)
+
+		// send message to cli
+		fmt.Println(reply.GetMessage())
+
 		return nil
 	},
 }

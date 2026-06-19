@@ -1,0 +1,29 @@
+services:
+  auth-server:
+    build: 
+      context: .
+      dockerfile: Dockerfile.server
+    image: auth-server:local
+    volumes:
+      - auth-cli-data:/app/data
+    environment:
+      - SESSION_TIMEOUT_MINUTES=5
+      - PORT=1234
+      - AUTH_SERVER_HOST=auth-server
+    ports:
+      - 1234:1234
+
+  auth-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: auth-client:local
+    stdin_open: true
+    tty: true
+    volumes:
+      - auth-cli-data:/app/data
+    environment:
+      - AUTH_SERVER_HOST=auth-server
+      - PORT=1234
+volumes:
+  auth-cli-data:

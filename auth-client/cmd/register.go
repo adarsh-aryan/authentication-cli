@@ -5,14 +5,16 @@ package cmd
 
 import (
 	"fmt"
-	"login-sys/auth"
+	"login-sys/auth-client/client"
+	"login-sys/shared"
 
 	"github.com/spf13/cobra"
 )
 
 // registerCmd represents the register command
 var registerCmd = &cobra.Command{
-	Use: "register",
+	Use:   "register [username] [password]",
+	Short: "Register your account",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// get username and password from cmd flags
@@ -26,11 +28,16 @@ var registerCmd = &cobra.Command{
 		}
 
 		// register user
-		err = auth.Register(username, password)
+		var reply shared.AuthResponse
+		err = client.Client.Call("AuthService.Register", shared.RegisterArgs{Username: username, Password: password}, &reply)
+
 		if err != nil {
 			return err
 		}
-		fmt.Println("register called")
+
+		// send msg to cli
+		fmt.Println(reply.GetMessage())
+
 		return nil
 	},
 }
