@@ -55,8 +55,9 @@ func main() {
 		_ = term.Restore(fd, oldState)
 	}
 	defer restoreTerm()
+	// defer term.Restore(fd, oldState)
 
-	// 3. Pass both Stdin and Stdout to the terminal controller
+	//Pass both Stdin and Stdout to the terminal controller
 	t := term.NewTerminal(rwWrapper{os.Stdin, os.Stdout}, "auth-cli > ")
 
 	// register autocomplete callback hook here
@@ -80,8 +81,8 @@ func main() {
 
 		input_args := strings.Fields(line)
 
-		// temporarily restore terminal store before running the cmd execution
-		// this prevents command outputs from formatting strangely in raw mode
+		// // temporarily restore terminal store before running the cmd execution
+		// // this prevents command outputs from formatting strangely in raw mode
 		term.Restore(int(os.Stdin.Fd()), oldState)
 
 		cmd.SetInputArgs(input_args)
@@ -89,7 +90,7 @@ func main() {
 			fmt.Println("Error: ", err)
 		}
 
-		// reenter raw mode for next prompt iteration
+		// // reenter raw mode for next prompt iteration
 		oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 		if err != nil {
 			log.Fatal(err)

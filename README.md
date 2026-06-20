@@ -53,10 +53,16 @@ Update values if needed.
 
 This project uses Docker Compose but requires running the server and CLI separately.
 
-### 1. Build the images and start the auth server
+### 1. Build the images (auth-server and auth-client)
 
 ```bash
-docker compose up auth-server -d --remove-orphans --build
+docker compose build
+```
+
+### 1. Start the auth server
+
+```bash
+docker compose up auth-server -d --remove-orphans
 ```
 
 - Runs the server in the background
@@ -65,7 +71,7 @@ docker compose up auth-server -d --remove-orphans --build
 ### 2. Run the CLI (interactive)
 
 ```bash
-docker compose run --rm auth-client up --remove-orphans
+docker compose run --rm auth-client --remove-orphans
 ```
 
 - Starts an interactive CLI session
@@ -101,6 +107,7 @@ go run main.go
 Once the CLI is running, you can use the following commands:
 
 The CLI is interactive and supports:
+
 - Command history (use arrow keys to navigate previous commands)
 - Auto-completion (press Tab to complete commands and flags)
 
