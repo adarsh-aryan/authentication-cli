@@ -18,6 +18,8 @@ services:
       context: .
       dockerfile: Dockerfile.client
     image: auth-client:local
+    stdin_open: true
+    tty: true
     volumes:
       - auth-cli-data:/app/data
     environment:
