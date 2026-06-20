@@ -3,7 +3,7 @@ package utils
 import "strings"
 
 // define all available cli commands for autocompletion
-var availableCommands = []string{"login", "logout", "register", "status", "quit", "help"}
+var availableCommands = []string{"login", "logout", "register", "whoami", "quit", "help"}
 
 // create the autocomplete callback function
 func AutoCompleteHook(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
