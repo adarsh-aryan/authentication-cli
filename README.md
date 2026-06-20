@@ -13,6 +13,7 @@ A simple authentication system consisting of:
 - `whoami` command to check current user
 - SQLite database (local)
 - Account lock after maximum failed login attempts
+- Interactive CLI with command history and auto-completion
 
 ## Project Structure
 
@@ -98,6 +99,10 @@ go run main.go
 ## Usage
 
 Once the CLI is running, you can use the following commands:
+
+The CLI is interactive and supports:
+- Command history (use arrow keys to navigate previous commands)
+- Auto-completion (press Tab to complete commands and flags)
 
 ### Register
 
