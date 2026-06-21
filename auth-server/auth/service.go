@@ -109,7 +109,7 @@ func (s *AuthService) Login(args shared.LoginArgs, reply *shared.LoginResponse) 
 		// check for is totp code valid
 		valid := user.IsTOTPValid(args.OTP)
 		if !valid {
-			// if otp is valid
+			// if otp code is not valid
 			// we have to count it as failed login attempt
 			// update account info for this user
 			err := user.Account.HandleLoginAttempts(s.DB, &user)
