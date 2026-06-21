@@ -35,7 +35,7 @@ Install the following:
 
 ```bash
 git clone <your-repo-url>
-cd login-cli
+cd authentication-cli
 ```
 
 ### 2. Configure environment variables
