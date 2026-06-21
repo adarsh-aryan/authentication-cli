@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"log"
 	"login-sys/auth-server/models"
 	"login-sys/shared"
 
@@ -154,7 +153,6 @@ func (s *AuthService) Request2FASetUp(args shared.SessionArgs, reply *shared.Set
 	})
 
 	user = &session.User
-	log.Println("set otp secert")
 
 	// set the user totp secret
 	err = user.SetTOTPSecret(key.Secret(), s.DB)
