@@ -139,7 +139,7 @@ whoami
 ### Exit CLI
 
 ```bash
-quit
+exit
 ```
 
 ### Enable 2FA (MFA)
