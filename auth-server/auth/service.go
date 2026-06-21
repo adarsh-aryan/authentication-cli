@@ -166,7 +166,6 @@ func (s *AuthService) Request2FASetUp(args shared.SessionArgs, reply *shared.Set
 	reply.Secret = key.Secret()
 	reply.URL = key.URL()
 
-	fmt.Println("requst reply", reply)
 	return nil
 }
 
@@ -224,7 +223,7 @@ func (s *AuthService) Disable2FA(args shared.SessionArgs, reply *shared.AuthResp
 	return nil
 }
 
-func (s *AuthService) WhoAmI(args shared.SessionArgs, reply *shared.AuthResponse) error {
+func (s *AuthService) WhoAmI(args shared.SessionArgs, reply *shared.LoginResponse) error {
 
 	user := &models.User{}
 	session, err := user.IsSessionExpired(args.SessionId, s.DB)
@@ -233,8 +232,12 @@ func (s *AuthService) WhoAmI(args shared.SessionArgs, reply *shared.AuthResponse
 		return err
 	}
 
+	user = &session.User
+
 	// update auth response
-	reply.SetMessage(session.User.Username) // set username in response message
+	reply.SetUserDetails(user, session)
+	reply.SetSessionId(session.SessionID)
+
 	return nil
 }
 
