@@ -14,6 +14,7 @@ A simple authentication system consisting of:
 - SQLite database (local)
 - Account lock after maximum failed login attempts
 - Interactive CLI with command history and auto-completion
+- Optional MFA (2FA) support using Google Authenticator
 
 ## Project Structure
 
@@ -140,6 +141,23 @@ whoami
 ```bash
 quit
 ```
+
+### Enable 2FA (MFA)
+
+```bash
+enable-2fa
+```
+
+- Enables two-factor authentication for your account
+- You will be prompted to scan a QR code using Google Authenticator (or a compatible app)
+
+### Disable 2FA (MFA)
+
+```bash
+disable-2fa
+```
+
+- Disables two-factor authentication for your account
 
 ## Development Notes
 

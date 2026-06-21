@@ -1,13 +1,12 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"login-sys/auth-server/models"
 	"login-sys/shared"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/pquerna/otp/totp"
 	"gorm.io/gorm"
 )
 
@@ -24,11 +23,11 @@ func (s *AuthService) Register(args shared.RegisterArgs, reply *shared.AuthRespo
 	password := args.Password
 
 	if len(username) < 5 {
-		return fmt.Errorf("Username %v is too short. It should be at five characters", username)
+		return fmt.Errorf("Username %v is too short. It should be at least five characters", username)
 	}
 
 	if len(password) < 5 {
-		return fmt.Errorf("Password %v is too short. It could be bypass", password)
+		return fmt.Errorf("Password %v is too short. It should be at least five characters", password)
 	}
 
 	// check for is that username is already exist in the users table
@@ -93,93 +92,153 @@ func (s *AuthService) Login(args shared.LoginArgs, reply *shared.LoginResponse) 
 	// hashed current password
 	// compare current hashed password to user hashed password in the database
 
-	err = models.CheckPassword(password, user.Password)
+	err = user.CheckPassword(password)
 	if err != nil {
 		// if password has not been mached
 		// we have to count it as failed attempt
 		// update the account info for this user
-		login_attempts := user.Account.CurrentLoginAttempts
-		login_attempts += 1
-
-		user.Account.CurrentLoginAttempts = login_attempts
-
-		if login_attempts >= user.Account.MaxLoginAttempts {
-			user.Account.IsLock = true // lock the account
-			err := s.DB.Save(user.Account).Error
-			if err != nil {
-				return err
-			}
-			return fmt.Errorf("max login attempts reached!, %v account has been locked", username)
-		}
-
-		err := s.DB.Save(user.Account).Error
+		err := user.Account.HandleLoginAttempts(s.DB, &user)
 		if err != nil {
 			return err
 		}
 
-		return fmt.Errorf("wrong password!, you have %v attempts left", user.Account.MaxLoginAttempts-login_attempts)
+		return fmt.Errorf("wrong password!, you have %v attempts left", user.Account.MaxLoginAttempts-user.Account.CurrentLoginAttempts)
 	}
 
-	// if successful login login attempts reset to zero
-	user.Account.CurrentLoginAttempts = 0
-	err = s.DB.Save(user.Account).Error
-	if err != nil {
-		return err
+	if user.Is2FAEnabled {
+		// check for is totp code valid
+		valid := user.IsTOTPValid(args.OTP)
+		if !valid {
+			// if otp is valid
+			// we have to count it as failed login attempt
+			// update account info for this user
+			err := user.Account.HandleLoginAttempts(s.DB, &user)
+			if err != nil {
+				return err
+			}
+
+			return fmt.Errorf("%s account has MFA enabled, you have %v attempts left", username, user.Account.MaxLoginAttempts-user.Account.CurrentLoginAttempts)
+		}
 	}
 
-	// save user session with timeout(configurable) (default 2minutes)
-	user_session := models.Session{
-		SessionID: uuid.NewString(),
-		UserID:    user.ID,
-	}
+	// if user is successful login reset current login attempts to zero
+	user.Account.ResetLoginAttempts(s.DB)
 
-	err = s.DB.Create(&user_session).Error
-	if err != nil {
-		return err
-	}
-
-	// update the user last login time
-	user.LastLoginTime = time.Now()
-	err = s.DB.Save(&user).Error
+	// create the user session
+	user_session, err := user.CreateSession(s.DB)
 	if err != nil {
 		return err
 	}
 
 	// update auth response
-	reply.SetUserDetails(&user, &user_session)
+	reply.SetUserDetails(&user, user_session)
 	reply.SetSessionId(user_session.SessionID)
 	reply.SetMessage("Login successful!")
 
 	return nil
 }
 
-func (s *AuthService) WhoAmI(args shared.WhoAmIArgs, reply *shared.AuthResponse) error {
+func (s *AuthService) Request2FASetUp(args shared.SessionArgs, reply *shared.SetUp2FAResponse) error {
 
-	session_id := args.SessionId
+	user := &models.User{}
+	session, err := user.IsSessionExpired(args.SessionId, s.DB)
 
-	// read the session created at this session id
-	var session models.Session
-	err := s.DB.Preload("User").Where("session_id=?", session_id).First(&session).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("no login session found")
-		}
 		return err
 	}
 
-	// check for is session got expired
-	if session.ExpirationTime.Before(time.Now()) {
-		return fmt.Errorf("Your session got expired, login again!")
+	// generate a new unique secret key for the user
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "auth-cli",
+		AccountName: session.User.Username,
+	})
+
+	user = &session.User
+	log.Println("set otp secert")
+
+	// set the user totp secret
+	err = user.SetTOTPSecret(key.Secret(), s.DB)
+
+	if err != nil {
+		return err
+	}
+
+	reply.Secret = key.Secret()
+	reply.URL = key.URL()
+
+	fmt.Println("requst reply", reply)
+	return nil
+}
+
+func (s *AuthService) Verify2FA(args shared.Verify2FArgs, reply *shared.AuthResponse) error {
+
+	// get user from the session id
+	user := &models.User{}
+	session, err := user.IsSessionExpired(args.SessionId, s.DB)
+
+	if err != nil {
+		return err
+	}
+
+	user = &session.User
+
+	// if it is get totp secret saved in user model
+	valid := user.IsTOTPValid(args.Code)
+
+	if !valid {
+		if err := user.Disable2FA(s.DB); err != nil {
+			return err
+		}
+
+		reply.SetMessage("Invalid 2FA code. Please try again")
+		return nil
+	}
+
+	err = user.Enable2FA(s.DB)
+	if err != nil {
+		return err
+	}
+
+	reply.SetMessage("2FA enabled successfully")
+	return nil
+}
+
+func (s *AuthService) Disable2FA(args shared.SessionArgs, reply *shared.AuthResponse) error {
+
+	// get user from the session id
+	user := &models.User{}
+	session, err := user.IsSessionExpired(args.SessionId, s.DB)
+
+	if err != nil {
+		return err
+	}
+
+	user = &session.User
+	// disable 2fa for user
+	err = user.Disable2FA(s.DB)
+	if err != nil {
+		return err
+	}
+
+	reply.SetMessage("2FA disabled successfully")
+	return nil
+}
+
+func (s *AuthService) WhoAmI(args shared.SessionArgs, reply *shared.AuthResponse) error {
+
+	user := &models.User{}
+	session, err := user.IsSessionExpired(args.SessionId, s.DB)
+
+	if err != nil {
+		return err
 	}
 
 	// update auth response
 	reply.SetMessage(session.User.Username) // set username in response message
-
 	return nil
-	// return username
 }
 
-func (s *AuthService) LogOut(args shared.LogoutArgs, reply *shared.AuthResponse) error {
+func (s *AuthService) LogOut(args shared.SessionArgs, reply *shared.AuthResponse) error {
 
 	var sessionId string
 

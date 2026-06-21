@@ -27,7 +27,7 @@ var whoamiCmd = &cobra.Command{
 		}
 
 		var reply shared.AuthResponse
-		err = client.Client.Call("AuthService.WhoAmI", shared.WhoAmIArgs{SessionId: session_config.SessionID}, &reply)
+		err = client.Client.Call("AuthService.WhoAmI", shared.SessionArgs{SessionId: session_config.SessionID}, &reply)
 
 		if err != nil {
 			return err

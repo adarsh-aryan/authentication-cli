@@ -29,8 +29,13 @@ var loginCmd = &cobra.Command{
 			return err
 		}
 
+		otp, err := cmd.Flags().GetString("otp")
+		if err != nil {
+			return err
+		}
+
 		var reply shared.LoginResponse
-		err = client.Client.Call("AuthService.Login", &shared.LoginArgs{Username: username, Password: password}, &reply)
+		err = client.Client.Call("AuthService.Login", shared.LoginArgs{Username: username, Password: password, OTP: otp}, &reply)
 
 		if err != nil {
 			return err
@@ -43,9 +48,10 @@ var loginCmd = &cobra.Command{
 		}
 
 		// show user details to user after login
-		data := map[string]string{
+		data := map[string]any{
 			"username":          reply.UserDetails.Username,
 			"registration_date": reply.UserDetails.RegistrationDate,
+			"mfa_status":        reply.UserDetails.MFAStatus,
 			"session_expiry":    reply.UserDetails.SessionExpirationTime,
 			"last_login":        reply.UserDetails.LastLoginTime,
 		}
@@ -71,6 +77,7 @@ func init() {
 	// add username and password flags
 	loginCmd.Flags().StringP("username", "u", "", "username")
 	loginCmd.Flags().StringP("password", "p", "", "password")
+	loginCmd.Flags().StringP("otp", "o", "", "otp")
 
 	// mark username and password field required
 	loginCmd.MarkFlagRequired("username")

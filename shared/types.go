@@ -13,25 +13,22 @@ type RegisterArgs struct {
 type LoginArgs struct {
 	Username string
 	Password string
+	OTP      string
 }
 
-type WhoAmIArgs struct {
+type SessionArgs struct {
 	SessionId string
 }
 
-type LogoutArgs struct {
+type Verify2FArgs struct {
 	SessionId string
-}
-
-type Response interface {
-	SetSessionId(string)
-	SetMessage(string)
-	SetUserDetails(user *models.User, session *models.Session) error
+	Code      string
 }
 
 type UserDetails struct {
 	Username              string
 	RegistrationDate      string
+	MFAStatus             bool
 	SessionExpirationTime string
 	LastLoginTime         string
 }
@@ -52,6 +49,7 @@ func (lr *LoginResponse) SetUserDetails(user *models.User, session *models.Sessi
 	user_details := UserDetails{
 		Username:              user.Username,
 		RegistrationDate:      user.CreatedAt.In(loc).Format(time.RFC1123),
+		MFAStatus:             user.Is2FAEnabled,
 		SessionExpirationTime: session.ExpirationTime.In(loc).Format(time.RFC1123),
 		LastLoginTime:         user.LastLoginTime.In(loc).Format(time.RFC1123),
 	}
@@ -91,4 +89,10 @@ func (ar *AuthResponse) SetUserDetails(user *models.User, session *models.Sessio
 
 func (ar *AuthResponse) GetMessage() string {
 	return ar.Message
+}
+
+// /  TOTP 2FA RESPONSE
+type SetUp2FAResponse struct {
+	Secret string
+	URL    string
 }
